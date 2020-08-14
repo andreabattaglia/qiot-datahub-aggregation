@@ -11,6 +11,7 @@ import com.redhat.qiot.datahub.aggregation.domain.measurement.hour.MeasurementBy
 import com.redhat.qiot.datahub.aggregation.domain.measurement.minute.MeasurementByMinute;
 import com.redhat.qiot.datahub.aggregation.persistence.CoarseGasRepository;
 import com.redhat.qiot.datahub.aggregation.persistence.CoarsePollutionRepository;
+import com.redhat.qiot.datahub.aggregation.persistence.MeasurementByDayRepository;
 import com.redhat.qiot.datahub.aggregation.persistence.MeasurementByHourRepository;
 import com.redhat.qiot.datahub.aggregation.persistence.MeasurementByMinuteRepository;
 import com.redhat.qiot.datahub.aggregation.util.events.AggregateHourToDayTimer;
@@ -38,12 +39,15 @@ public class AggregationServiceImpl implements AggregationService {
     
     @Inject
     MeasurementByHourRepository byHourRepository;
+    
+    @Inject
+    MeasurementByDayRepository byDayRepository;
 
     /**
      * @param coordinates
      *            the coordinates to set
      */
-    void aggregateNH3(@Observes @AggregateNH3Timer String value) {
+    void aggregateNH3(@Observes @AggregateNH3Timer Long value) {
         LOGGER.info("aggregateNH3 - start", value);
         coarseGasRepository.aggregateNH3();
         LOGGER.info("aggregateNH3 - end", value);
@@ -53,7 +57,7 @@ public class AggregationServiceImpl implements AggregationService {
      * @param coordinates
      *            the coordinates to set
      */
-    void aggregateOxidising(@Observes @AggregateOxidisingTimer String value) {
+    void aggregateOxidising(@Observes @AggregateOxidisingTimer Long value) {
         LOGGER.info("aggregateOxidising - start", value);
         coarseGasRepository.aggregateOxidising();
         LOGGER.info("aggregateOxidising - end", value);
@@ -63,7 +67,7 @@ public class AggregationServiceImpl implements AggregationService {
      * @param coordinates
      *            the coordinates to set
      */
-    void aggregatePM10(@Observes @AggregatePM10Timer String value) {
+    void aggregatePM10(@Observes @AggregatePM10Timer Long value) {
         LOGGER.info("aggregatePM10 - start", value);
         coarsePollutionRepository.aggregatePM10();
         LOGGER.info("aggregatePM10 - end", value);
@@ -73,7 +77,7 @@ public class AggregationServiceImpl implements AggregationService {
      * @param coordinates
      *            the coordinates to set
      */
-    void aggregatePM2_5(@Observes @AggregatePM2_5Timer String value) {
+    void aggregatePM2_5(@Observes @AggregatePM2_5Timer Long value) {
         LOGGER.info("aggregatePM2_5 - start", value);
         coarsePollutionRepository.aggregatePM2_5();
         LOGGER.info("aggregatePM2_5 - end", value);
@@ -83,9 +87,9 @@ public class AggregationServiceImpl implements AggregationService {
      * @param coordinates
      *            the coordinates to set
      */
-    void aggregateMinuteToHour(@Observes @AggregateMinuteToHourTimer String value) {
+    void aggregateMinuteToHour(@Observes @AggregateMinuteToHourTimer Long value) {
         LOGGER.info("aggregateMinuteToHour - start", value);
-        byMinuteRepository.aggregate();
+        byMinuteRepository.aggregate(value);
         LOGGER.info("aggregateMinuteToHour - end", value);
     }
 
@@ -93,10 +97,12 @@ public class AggregationServiceImpl implements AggregationService {
      * @param coordinates
      *            the coordinates to set
      */
-    void aggregateHourToDay(@Observes @AggregateHourToDayTimer String value) {
+    void aggregateHourToDay(@Observes @AggregateHourToDayTimer Long value) {
         LOGGER.info("aggregateHourToDay - start", value);
-        byHourRepository.aggregate();
+        byHourRepository.aggregate(value);
+        byDayRepository.aggregate();
         LOGGER.info("aggregateHourToDay - end", value);
     }
+
 
 }

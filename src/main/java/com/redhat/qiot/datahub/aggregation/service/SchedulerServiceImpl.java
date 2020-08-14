@@ -32,52 +32,67 @@ class SchedulerServiceImpl implements SchedulerService {
 
     @Inject
     @AggregateNH3Timer
-    Event<String> aggregateNH3TimerEvent;
+    Event<Long> aggregateNH3TimerEvent;
 
     @Inject
     @AggregateOxidisingTimer
-    Event<String> aggregateOxidisingTimerEvent;
+    Event<Long> aggregateOxidisingTimerEvent;
 
     @Inject
     @AggregatePM10Timer
-    Event<String> aggregatePM10TimerEvent;
+    Event<Long> aggregatePM10TimerEvent;
 
     @Inject
     @AggregatePM2_5Timer
-    Event<String> aggregatePM2_5TimerEvent;
+    Event<Long> aggregatePM2_5TimerEvent;
     @Inject
     @AggregateMinuteToHourTimer
-    Event<String> aggregateMinuteToHourTimerEvent;
+    Event<Long> aggregateMinuteToHourTimerEvent;
     @Inject
     @AggregateHourToDayTimer
-    Event<String> aggregateHourToDayTimerEvent;
+    Event<Long> aggregateHourToDayTimerEvent;
 
     @Scheduled(every = "1m")
-    void aggregateCoarseToMinute() {
+    void aggregateCoarseToMinuteInt() {
+        aggregateCoarseToMinute(0L);
+    }
+
+    @Override
+    public void aggregateCoarseToMinute(Long min) {
         LOGGER.info("aggregateCoarseToMinute() - start");
 
-        aggregateNH3TimerEvent.fire("");
-        aggregateOxidisingTimerEvent.fire("");
-        aggregatePM10TimerEvent.fire("");
-        aggregatePM2_5TimerEvent.fire("");
+        aggregateNH3TimerEvent.fire(min);
+        aggregateOxidisingTimerEvent.fire(min);
+        aggregatePM10TimerEvent.fire(min);
+        aggregatePM2_5TimerEvent.fire(min);
 
         LOGGER.info("aggregateCoarseToMinute() - end");
     }
 
     @Scheduled(every = "1h")
-    void aggregateMinuteToHour() {
+    void aggregateMinuteToHourInt() {
+        aggregateMinuteToHour(1L);
+    }
+
+    @Override
+    public void aggregateMinuteToHour(Long min) {
         LOGGER.info("aggregateMinuteToHour() - start");
 
-        aggregateMinuteToHourTimerEvent.fire("");
+        aggregateMinuteToHourTimerEvent.fire(min);
 
         LOGGER.info("aggregateMinuteToHour() - end");
     }
 
     @Scheduled(every = "24h")
-    void aggregateHourToDay() {
+    void aggregateHourToDayInt() {
+        aggregateHourToDay(1L);
+    }
+
+    @Override
+    public void aggregateHourToDay(Long min) {
         LOGGER.info("aggregateHourToDay() - start");
 
-        aggregateHourToDayTimerEvent.fire("");
+        aggregateHourToDayTimerEvent.fire(min);
 
         LOGGER.info("aggregateHourToDay() - end");
     }

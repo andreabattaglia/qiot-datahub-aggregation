@@ -1,10 +1,10 @@
 package com.redhat.qiot.datahub.aggregation.persistence;
 
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PostConstruct;
@@ -97,26 +97,32 @@ public class MeasurementByHourRepository {
                 expirationOptionIndex);
     }
 
-    public void aggregate() {
+    public void aggregate(Long pastDays) {
+        LOGGER.info("aggregate(Long pastDays={}) - start", pastDays);
+
         collection.aggregate(//
                 Arrays.asList(//
-                        match(), //
+                        match(pastDays), //
                         group(), //
                         Aggregates.merge(MERGE_COLLECTION_NAME)//
                 )//
-        ).forEach((d) -> LOGGER.trace("DOCUMENT RESULT {}", d.toString()));
+        ).toCollection();
+
+        LOGGER.info("aggregate(Long pastDays={}) - end", pastDays);
     }
 
-    private Bson match() {
+    private Bson match(Long pastDays) {
         OffsetDateTime utc = OffsetDateTime.now(ZoneOffset.UTC)
-                .truncatedTo(ChronoUnit.HOURS);
-        Date min = Date.from(utc.minus(1L, ChronoUnit.HOURS).toInstant());
-        LOGGER.debug("Date MIN = {}", min);
-        Date max = Date.from(utc.minus(0L, ChronoUnit.HOURS).toInstant());
-        LOGGER.debug("Date MAX = {}", max);
+                .truncatedTo(ChronoUnit.DAYS);
+        Instant max = utc.minus(0L, ChronoUnit.DAYS).toInstant();
+        LOGGER.info("Date MAX = {}", max);
+        if (pastDays == -1L)
+            return Aggregates.match(Filters.lt("time", max));
+        Instant min = utc.minus(pastDays, ChronoUnit.DAYS).toInstant();
+        LOGGER.info("Date MIN = {}", min);
 
-         return Aggregates.match(
-         Filters.and(Filters.gte("time", min), Filters.lt("time", max)));
+        return Aggregates.match(
+                Filters.and(Filters.gte("time", min), Filters.lt("time", max)));
     }
 
     private Bson group() {

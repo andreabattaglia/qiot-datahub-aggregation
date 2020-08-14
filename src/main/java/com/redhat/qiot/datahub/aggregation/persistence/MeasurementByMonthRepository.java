@@ -26,16 +26,13 @@ import com.mongodb.client.model.Indexes;
 import io.quarkus.runtime.StartupEvent;
 
 @ApplicationScoped
-public class MeasurementByDayRepository {
+public class MeasurementByMonthRepository {
 
     @ConfigProperty(name = "qiot.database.name")
     String DATABASE_NAME;
 
-    @ConfigProperty(name = "qiot.measurement.grain.day.collection-name")
-    String COLLECTION_NAME;
-
     @ConfigProperty(name = "qiot.measurement.grain.month.collection-name")
-    String MERGE_COLLECTION_NAME;
+    String COLLECTION_NAME;
 
     @Inject
     Logger LOGGER;
@@ -77,32 +74,6 @@ public class MeasurementByDayRepository {
 
     private void ensureIndexes() {
         collection.createIndex(Indexes.ascending("time"));
-    }
-
-    public void aggregate() {
-        collection.aggregate(//
-                Arrays.asList(//
-                        group(), //
-                        Aggregates.out(MERGE_COLLECTION_NAME)//
-                )//
-        ).toCollection();
-    }
-
-    private Bson group() {
-        Document id = new Document("$group", new Document("_id", //
-                new Document("year", "$_id.year")//
-                        .append("month", "$_id.month")//
-                        .append("stationId", "$_id.stationId")//
-                        .append("specie", "$_id.specie")//
-        )//
-                .append("time", new Document("$max", "$time"))//
-                .append("min", new Document("$min", "$min"))//
-                .append("max", new Document("$max", "$max"))//
-                .append("avg", new Document("$avg", "$avg"))//
-                .append("count", new Document("$sum", 1))//
-
-        );
-        return id;
     }
 
 }

@@ -1,5 +1,7 @@
 package com.redhat.qiot.datahub.aggregation.persistence;
 
+import org.slf4j.LoggerFactory;
+
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
@@ -80,13 +82,17 @@ public class CoarseGasRepository {
     }
 
     void aggregate(String specie) {
+        LOGGER.debug("aggregate(String specie={}) - start", specie);
+
         collection.aggregate(//
                 Arrays.asList(//
                         match(), //
                         group(specie), //
                         Aggregates.merge(MERGE_COLLECTION_NAME)//
                 )//
-        ).forEach((d) -> LOGGER.trace("DOCUMENT RESULT {}", d.toString()));
+        ).toCollection();
+
+        LOGGER.debug("aggregate(String specie={}) - end", specie);
     }
 
     private Bson match() {

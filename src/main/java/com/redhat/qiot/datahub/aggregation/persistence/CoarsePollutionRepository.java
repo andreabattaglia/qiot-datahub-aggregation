@@ -1,5 +1,8 @@
 package com.redhat.qiot.datahub.aggregation.persistence;
 
+import org.slf4j.LoggerFactory;
+
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
@@ -34,6 +37,9 @@ public class CoarsePollutionRepository {
 
     @ConfigProperty(name = "qiot.measurement.grain.coarse.pollution.name")
     String COLLECTION_NAME;
+
+    @ConfigProperty(name = "qiot.measurement.grain.minute.collection-name")
+    String MERGE_COLLECTION_NAME;
 
     @Inject
     Logger LOGGER;
@@ -77,22 +83,26 @@ public class CoarsePollutionRepository {
     }
 
     void aggregate(String specie) {
+        LOGGER.debug("aggregate(String specie={}) - start", specie);
+
         collection.aggregate(//
                 Arrays.asList(//
                         match(), //
                         group(specie), //
-                        Aggregates.merge("measurementbyminute")//
+                        Aggregates.merge(MERGE_COLLECTION_NAME)//
                 )//
-        ).forEach((d) -> LOGGER.trace("DOCUMENT RESULT {}", d.toString()));
+        ).toCollection();
+
+        LOGGER.debug("aggregate(String specie={}) - end", specie);
     }
 
     private Bson match() {
 
         OffsetDateTime utc = OffsetDateTime.now(ZoneOffset.UTC)
                 .truncatedTo(ChronoUnit.MINUTES);
-        Date min = Date.from(utc.minus(2L, ChronoUnit.MINUTES).toInstant());
+        Instant min = utc.minus(2L, ChronoUnit.MINUTES).toInstant();
         LOGGER.info("Date MIN = {}", min);
-        Date max = Date.from(utc.minus(1L, ChronoUnit.MINUTES).toInstant());
+        Instant max = utc.minus(1L, ChronoUnit.MINUTES).toInstant();
         LOGGER.info("Date MAX = {}", max);
 
         return Aggregates.match(
