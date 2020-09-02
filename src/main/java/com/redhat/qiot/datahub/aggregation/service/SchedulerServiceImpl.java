@@ -52,7 +52,8 @@ class SchedulerServiceImpl implements SchedulerService {
     @AggregateHourToDayTimer
     Event<Long> aggregateHourToDayTimerEvent;
 
-    @Scheduled(every = "1m")
+//    @Scheduled(every = "1m")
+    @Scheduled(cron = "{aggr.minute.cron.expr}")
     void aggregateCoarseToMinuteInt() {
         aggregateCoarseToMinute(0L);
     }
@@ -69,7 +70,8 @@ class SchedulerServiceImpl implements SchedulerService {
         LOGGER.info("aggregateCoarseToMinute() - end");
     }
 
-    @Scheduled(every = "1h")
+//    @Scheduled(every = "1h")
+    @Scheduled(cron = "{aggr.hour.cron.expr}")
     void aggregateMinuteToHourInt() {
         aggregateMinuteToHour(1L);
     }
@@ -83,7 +85,8 @@ class SchedulerServiceImpl implements SchedulerService {
         LOGGER.info("aggregateMinuteToHour() - end");
     }
 
-    @Scheduled(every = "24h")
+//    @Scheduled(every = "24h")
+    @Scheduled(cron = "{aggr.day.cron.expr}")
     void aggregateHourToDayInt() {
         aggregateHourToDay(1L);
     }
