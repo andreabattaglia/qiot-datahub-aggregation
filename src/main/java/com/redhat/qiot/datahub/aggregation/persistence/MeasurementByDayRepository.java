@@ -1,5 +1,13 @@
 package com.redhat.qiot.datahub.aggregation.persistence;
 
+import static com.mongodb.client.model.Projections.computed;
+import static com.mongodb.client.model.Projections.excludeId;
+import static com.mongodb.client.model.Projections.fields;
+import static com.mongodb.client.model.Projections.include;
+import static com.mongodb.client.model.Sorts.ascending;
+import static com.mongodb.client.model.Sorts.descending;
+import static com.mongodb.client.model.Sorts.orderBy;
+
 import java.util.Arrays;
 
 import javax.annotation.PostConstruct;
@@ -21,7 +29,11 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Aggregates;
+import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.Indexes;
+import com.mongodb.client.model.MergeOptions;
+import com.mongodb.client.model.MergeOptions.WhenMatched;
+import com.mongodb.client.model.MergeOptions.WhenNotMatched;
 
 import io.quarkus.runtime.StartupEvent;
 
@@ -76,24 +88,30 @@ public class MeasurementByDayRepository {
     }
 
     private void ensureIndexes() {
-        collection.createIndex(Indexes.ascending("time"));
+        collection.createIndex(Indexes.descending("time"));
+        IndexOptions uniqueIndexOptions = new IndexOptions().unique(true);
+        collection.createIndex(
+                Indexes.descending("time", "stationId", "specie"),
+                uniqueIndexOptions);
     }
 
     public void aggregate() {
         collection.aggregate(//
                 Arrays.asList(//
                         group(), //
-                        Aggregates.out(MERGE_COLLECTION_NAME)//
+                        project(), //
+                        sort(), //
+                        merge() //
                 )//
         ).toCollection();
     }
 
     private Bson group() {
         Document id = new Document("$group", new Document("_id", //
-                new Document("year", "$_id.year")//
-                        .append("month", "$_id.month")//
-                        .append("stationId", "$_id.stationId")//
-                        .append("specie", "$_id.specie")//
+                new Document("year", new Document("$year", "$time"))//
+                        .append("month", new Document("$month", "$time"))//
+                        .append("stationId", "$stationId")//
+                        .append("specie", "$specie")//
         )//
                 .append("time", new Document("$max", "$time"))//
                 .append("min", new Document("$min", "$min"))//
@@ -103,6 +121,32 @@ public class MeasurementByDayRepository {
 
         );
         return id;
+    }
+
+    private Bson project() {
+        return Aggregates.project(fields(excludeId()
+        // ,computed("year", new Document("$year", "$time"))
+        // ,computed("month", new Document("$month", "$time"))//
+        // , computed("day", new Document("$dayOfMonth", "$time"))//
+        // , computed("hour", new Document("$hour", "$time"))//
+                , include("time", "min", "max", "avg", "count")//
+                , computed("stationId", "$_id.stationId")//
+                , computed("specie", "$_id.specie")//
+
+        ));
+    }
+
+    private Bson sort() {
+        return Aggregates.sort(orderBy(descending("time"),
+                ascending("stationId"), ascending("specie")));
+    }
+
+    private Bson merge() {
+        MergeOptions mergeOptions = new MergeOptions()
+                .uniqueIdentifier(Arrays.asList("time", "stationId", "specie"))
+                .whenMatched(WhenMatched.REPLACE)
+                .whenNotMatched(WhenNotMatched.INSERT);
+        return Aggregates.merge(MERGE_COLLECTION_NAME, mergeOptions);
     }
 
 }

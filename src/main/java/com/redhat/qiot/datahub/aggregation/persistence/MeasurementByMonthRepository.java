@@ -1,7 +1,5 @@
 package com.redhat.qiot.datahub.aggregation.persistence;
 
-import java.util.Arrays;
-
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
@@ -12,7 +10,6 @@ import org.bson.codecs.configuration.CodecProvider;
 import org.bson.codecs.configuration.CodecRegistries;
 import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.codecs.pojo.PojoCodecProvider;
-import org.bson.conversions.Bson;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
@@ -20,7 +17,7 @@ import com.mongodb.MongoClientSettings;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.Aggregates;
+import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.Indexes;
 
 import io.quarkus.runtime.StartupEvent;
@@ -73,7 +70,11 @@ public class MeasurementByMonthRepository {
     }
 
     private void ensureIndexes() {
-        collection.createIndex(Indexes.ascending("time"));
+        collection.createIndex(Indexes.descending("time"));
+        IndexOptions uniqueIndexOptions = new IndexOptions().unique(true);
+        collection.createIndex(
+                Indexes.descending("time", "stationId", "specie"),
+                uniqueIndexOptions);
     }
 
 }

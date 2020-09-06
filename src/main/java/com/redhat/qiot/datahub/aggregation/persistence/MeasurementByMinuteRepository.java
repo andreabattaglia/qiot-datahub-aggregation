@@ -1,6 +1,12 @@
 package com.redhat.qiot.datahub.aggregation.persistence;
 
-import org.slf4j.LoggerFactory;
+import static com.mongodb.client.model.Projections.computed;
+import static com.mongodb.client.model.Projections.excludeId;
+import static com.mongodb.client.model.Projections.fields;
+import static com.mongodb.client.model.Projections.include;
+import static com.mongodb.client.model.Sorts.ascending;
+import static com.mongodb.client.model.Sorts.descending;
+import static com.mongodb.client.model.Sorts.orderBy;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -31,6 +37,9 @@ import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.Indexes;
+import com.mongodb.client.model.MergeOptions;
+import com.mongodb.client.model.MergeOptions.WhenMatched;
+import com.mongodb.client.model.MergeOptions.WhenNotMatched;
 
 import io.quarkus.runtime.StartupEvent;
 
@@ -93,34 +102,40 @@ public class MeasurementByMinuteRepository {
     private void ensureIndexes() {
         LOGGER.info("Setting TTL for {}: time to live={}, timeUnit={}",
                 COLLECTION_NAME, TTL, TIME_UNIT);
-        IndexOptions expirationOptionIndex = new IndexOptions()
+        IndexOptions expirationIndexOptions = new IndexOptions()
                 .expireAfter(Long.parseLong(TTL), TimeUnit.valueOf(TIME_UNIT));
         collection.createIndex(Indexes.ascending("time"),
-                expirationOptionIndex);
+                expirationIndexOptions);
+        IndexOptions uniqueIndexOptions = new IndexOptions().unique(true);
+        collection.createIndex(
+                Indexes.descending("time", "stationId", "specie"),
+                uniqueIndexOptions);
     }
 
-    public void aggregate(Long pastDays) {
-        LOGGER.debug("aggregate(Long pastDays={}) - start", pastDays);
+    public void aggregate(Long hours) {
+        LOGGER.debug("aggregate(Long hours={}) - start", hours);
 
         collection.aggregate(Arrays.asList(//
-                match(pastDays), //
+                match(hours), //
                 group(), //
-                Aggregates.merge(MERGE_COLLECTION_NAME)//
+                project(), //
+                sort(), //
+                merge() //
         )//
         ).toCollection();
 
-        LOGGER.debug("aggregate(Long pastDays={}) - end", pastDays);
+        LOGGER.debug("aggregate(Long hours={}) - end", hours);
     }
 
-    private Bson match(Long pastDays) {
+    private Bson match(Long hours) {
         OffsetDateTime utc = OffsetDateTime.now(ZoneOffset.UTC)
                 .truncatedTo(ChronoUnit.HOURS);
         Instant max = utc.minus(0L, ChronoUnit.HOURS).toInstant();
-        LOGGER.debug("Date MAX = {}", max);
-        if (pastDays == -1)
+        LOGGER.debug("Instant MAX = {}", max);
+        if (hours == -1L)
             return Aggregates.match(Filters.lt("time", max));
-        Instant min = utc.minus(pastDays, ChronoUnit.HOURS).toInstant();
-        LOGGER.debug("Date MIN = {}", min);
+        Instant min = utc.minus(hours, ChronoUnit.HOURS).toInstant();
+        LOGGER.debug("Instant MIN = {}", min);
 
         return Aggregates.match(
                 Filters.and(Filters.gte("time", min), Filters.lt("time", max)));
@@ -128,12 +143,12 @@ public class MeasurementByMinuteRepository {
 
     private Bson group() {
         Document id = new Document("$group", new Document("_id", //
-                new Document("year", "$_id.year")//
-                        .append("month", "$_id.month")//
-                        .append("day", "$_id.day")//
-                        .append("hour", "$_id.hour")//
-                        .append("stationId", "$_id.stationId")//
-                        .append("specie", "$_id.specie")//
+                new Document("year", new Document("$year", "$time"))//
+                        .append("month", new Document("$month", "$time"))//
+                        .append("day", new Document("$dayOfMonth", "$time"))//
+                        .append("hour", new Document("$hour", "$time"))//
+                        .append("stationId", "$stationId")//
+                        .append("specie", "$specie")//
         )//
                 .append("time", new Document("$max", "$time"))//
                 .append("min", new Document("$min", "$min"))//
@@ -143,6 +158,32 @@ public class MeasurementByMinuteRepository {
 
         );
         return id;
+    }
+
+    private Bson project() {
+        return Aggregates.project(fields(excludeId()
+        // ,computed("year", new Document("$year", "$time"))
+        // ,computed("month", new Document("$month", "$time"))//
+        // , computed("day", new Document("$dayOfMonth", "$time"))//
+        // , computed("hour", new Document("$hour", "$time"))//
+                , include("time", "min", "max", "avg", "count")//
+                , computed("stationId", "$_id.stationId")//
+                , computed("specie", "$_id.specie")//
+
+        ));
+    }
+
+    private Bson sort() {
+        return Aggregates.sort(orderBy(descending("time"),
+                ascending("stationId"), ascending("specie")));
+    }
+
+    private Bson merge() {
+        MergeOptions mergeOptions = new MergeOptions()
+                .uniqueIdentifier(Arrays.asList("time", "stationId", "specie"))
+                .whenMatched(WhenMatched.REPLACE)
+                .whenNotMatched(WhenNotMatched.INSERT);
+        return Aggregates.merge(MERGE_COLLECTION_NAME, mergeOptions);
     }
 
 }

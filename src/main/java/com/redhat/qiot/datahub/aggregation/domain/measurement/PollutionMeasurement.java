@@ -1,5 +1,6 @@
 package com.redhat.qiot.datahub.aggregation.domain.measurement;
 
+import java.time.Instant;
 import java.util.Date;
 
 import io.quarkus.runtime.annotations.RegisterForReflection;
@@ -25,7 +26,7 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 @RegisterForReflection
 public class PollutionMeasurement {
     public int stationId;
-    public Date time;
+    public Instant time;
     public int pm1_0;
     public int pm2_5;
     public int pm10;

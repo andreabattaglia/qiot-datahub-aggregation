@@ -11,7 +11,7 @@ import javax.ws.rs.core.MediaType;
 
 import org.slf4j.Logger;
 
-import com.redhat.qiot.datahub.aggregation.service.SchedulerService;
+import com.redhat.qiot.datahub.aggregation.service.OnDemandService;
 
 @ApplicationScoped
 @Produces(MediaType.TEXT_PLAIN)
@@ -21,25 +21,26 @@ public class AggregateResource {
 
     @Inject
     Logger LOGGER;
-    
+
     @Inject
-    SchedulerService schedulerService;
+    OnDemandService onDemandService;
 
     @GET
-    public void test(@QueryParam("grain") AggregationGrainType grain) {
+    public void run(@QueryParam("grain") AggregationGrainType grain) {
         switch (grain) {
         case minute:
-            schedulerService.aggregateCoarseToMinute(-1L);
+            onDemandService.aggregateCoarseToMinute();
             break;
         case hour:
-            schedulerService.aggregateMinuteToHour(-1L);
+            onDemandService.aggregateMinuteToHour();
             break;
         case day:
-            schedulerService.aggregateHourToDay(-1L);
+            onDemandService.aggregateHourToDay();
             break;
-
+        case all:
+            onDemandService.aggregateAll();
         default:
-            throw new RuntimeException("Requested grain is invalid: "+grain);
+            throw new RuntimeException("Requested grain is invalid: " + grain);
         }
     }
 

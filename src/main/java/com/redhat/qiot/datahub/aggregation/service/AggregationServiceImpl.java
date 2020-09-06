@@ -1,25 +1,25 @@
 package com.redhat.qiot.datahub.aggregation.service;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 
-import com.redhat.qiot.datahub.aggregation.domain.measurement.hour.MeasurementByHour;
-import com.redhat.qiot.datahub.aggregation.domain.measurement.minute.MeasurementByMinute;
+import org.slf4j.Logger;
+
 import com.redhat.qiot.datahub.aggregation.persistence.CoarseGasRepository;
 import com.redhat.qiot.datahub.aggregation.persistence.CoarsePollutionRepository;
 import com.redhat.qiot.datahub.aggregation.persistence.MeasurementByDayRepository;
 import com.redhat.qiot.datahub.aggregation.persistence.MeasurementByHourRepository;
 import com.redhat.qiot.datahub.aggregation.persistence.MeasurementByMinuteRepository;
+import com.redhat.qiot.datahub.aggregation.util.events.AggregateAll;
 import com.redhat.qiot.datahub.aggregation.util.events.AggregateHourToDayTimer;
 import com.redhat.qiot.datahub.aggregation.util.events.AggregateMinuteToHourTimer;
 import com.redhat.qiot.datahub.aggregation.util.events.AggregateNH3Timer;
 import com.redhat.qiot.datahub.aggregation.util.events.AggregateOxidisingTimer;
 import com.redhat.qiot.datahub.aggregation.util.events.AggregatePM10Timer;
 import com.redhat.qiot.datahub.aggregation.util.events.AggregatePM2_5Timer;
+
+import io.quarkus.runtime.StartupEvent;
 
 @ApplicationScoped
 public class AggregationServiceImpl implements AggregationService {
@@ -33,76 +33,92 @@ public class AggregationServiceImpl implements AggregationService {
     CoarseGasRepository coarseGasRepository;
     @Inject
     CoarsePollutionRepository coarsePollutionRepository;
-    
+
     @Inject
     MeasurementByMinuteRepository byMinuteRepository;
-    
+
     @Inject
     MeasurementByHourRepository byHourRepository;
-    
+
     @Inject
     MeasurementByDayRepository byDayRepository;
 
-    /**
-     * @param coordinates
-     *            the coordinates to set
-     */
-    void aggregateNH3(@Observes @AggregateNH3Timer Long value) {
-        LOGGER.info("aggregateNH3 - start", value);
-        coarseGasRepository.aggregateNH3();
-        LOGGER.info("aggregateNH3 - end", value);
+    void onStart(@Observes StartupEvent ev) {
+        LOGGER.info("Running aggregation pipelines once at startup...");
+        runAggregationOnce(-1L);
     }
-
-    /**
-     * @param coordinates
-     *            the coordinates to set
-     */
-    void aggregateOxidising(@Observes @AggregateOxidisingTimer Long value) {
-        LOGGER.info("aggregateOxidising - start", value);
-        coarseGasRepository.aggregateOxidising();
-        LOGGER.info("aggregateOxidising - end", value);
-    }
-
-    /**
-     * @param coordinates
-     *            the coordinates to set
-     */
-    void aggregatePM10(@Observes @AggregatePM10Timer Long value) {
-        LOGGER.info("aggregatePM10 - start", value);
-        coarsePollutionRepository.aggregatePM10();
-        LOGGER.info("aggregatePM10 - end", value);
-    }
-
-    /**
-     * @param coordinates
-     *            the coordinates to set
-     */
-    void aggregatePM2_5(@Observes @AggregatePM2_5Timer Long value) {
-        LOGGER.info("aggregatePM2_5 - start", value);
-        coarsePollutionRepository.aggregatePM2_5();
-        LOGGER.info("aggregatePM2_5 - end", value);
-    }
-
-    /**
-     * @param coordinates
-     *            the coordinates to set
-     */
-    void aggregateMinuteToHour(@Observes @AggregateMinuteToHourTimer Long value) {
-        LOGGER.info("aggregateMinuteToHour - start", value);
-        byMinuteRepository.aggregate(value);
-        LOGGER.info("aggregateMinuteToHour - end", value);
-    }
-
-    /**
-     * @param coordinates
-     *            the coordinates to set
-     */
-    void aggregateHourToDay(@Observes @AggregateHourToDayTimer Long value) {
-        LOGGER.info("aggregateHourToDay - start", value);
-        byHourRepository.aggregate(value);
+    
+     void runAggregationOnce(@Observes @AggregateAll Long value) {
+         LOGGER.info("Aggregating all the available data without time offsets...");
+        coarseGasRepository.aggregateNH3(-1L);
+        coarseGasRepository.aggregateOxidising(-1L);
+        coarsePollutionRepository.aggregatePM10(-1L);
+        coarsePollutionRepository.aggregatePM2_5(-1L);
+        byMinuteRepository.aggregate(-1L);
+        byHourRepository.aggregate(-1L);
         byDayRepository.aggregate();
-        LOGGER.info("aggregateHourToDay - end", value);
     }
 
+    /**
+     * @param coordinates
+     *            the coordinates to set
+     */
+    void aggregateNH3(@Observes @AggregateNH3Timer Long minutes) {
+        LOGGER.info("aggregateNH3 - start", minutes);
+        coarseGasRepository.aggregateNH3(minutes);
+        LOGGER.info("aggregateNH3 - end", minutes);
+    }
+
+    /**
+     * @param coordinates
+     *            the coordinates to set
+     */
+    void aggregateOxidising(@Observes @AggregateOxidisingTimer Long minutes) {
+        LOGGER.info("aggregateOxidising - start", minutes);
+        coarseGasRepository.aggregateOxidising(minutes);
+        LOGGER.info("aggregateOxidising - end", minutes);
+    }
+
+    /**
+     * @param coordinates
+     *            the coordinates to set
+     */
+    void aggregatePM10(@Observes @AggregatePM10Timer Long minutes) {
+        LOGGER.info("aggregatePM10 - start", minutes);
+        coarsePollutionRepository.aggregatePM10(minutes);
+        LOGGER.info("aggregatePM10 - end", minutes);
+    }
+
+    /**
+     * @param coordinates
+     *            the coordinates to set
+     */
+    void aggregatePM2_5(@Observes @AggregatePM2_5Timer Long minutes) {
+        LOGGER.info("aggregatePM2_5 - start", minutes);
+        coarsePollutionRepository.aggregatePM2_5(minutes);
+        LOGGER.info("aggregatePM2_5 - end", minutes);
+    }
+
+    /**
+     * @param coordinates
+     *            the coordinates to set
+     */
+    void aggregateMinuteToHour(
+            @Observes @AggregateMinuteToHourTimer Long hours) {
+        LOGGER.info("aggregateMinuteToHour - start", hours);
+        byMinuteRepository.aggregate(hours);
+        LOGGER.info("aggregateMinuteToHour - end", hours);
+    }
+
+    /**
+     * @param coordinates
+     *            the coordinates to set
+     */
+    void aggregateHourToDay(@Observes @AggregateHourToDayTimer Long days) {
+        LOGGER.info("aggregateHourToDay - start", days);
+        byHourRepository.aggregate(days);
+        byDayRepository.aggregate();
+        LOGGER.info("aggregateHourToDay - end", days);
+    }
 
 }

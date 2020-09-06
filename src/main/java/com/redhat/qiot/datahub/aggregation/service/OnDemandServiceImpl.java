@@ -5,7 +5,6 @@ package com.redhat.qiot.datahub.aggregation.service;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Event;
-import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 
 import org.slf4j.Logger;
@@ -18,17 +17,12 @@ import com.redhat.qiot.datahub.aggregation.util.events.AggregateOxidisingTimer;
 import com.redhat.qiot.datahub.aggregation.util.events.AggregatePM10Timer;
 import com.redhat.qiot.datahub.aggregation.util.events.AggregatePM2_5Timer;
 
-import io.quarkus.runtime.StartupEvent;
-import io.quarkus.scheduler.Scheduled;
-import io.quarkus.scheduler.Scheduled.ConcurrentExecution;
-import io.quarkus.scheduler.Scheduled.Schedules;
-
 /**
  * @author abattagl
  *
  */
 @ApplicationScoped
-class SchedulerServiceImpl implements SchedulerService {
+public class OnDemandServiceImpl implements OnDemandService {
     /**
      * Logger for this class
      */
@@ -60,12 +54,11 @@ class SchedulerServiceImpl implements SchedulerService {
     @AggregateAll
     Event<Long> aggregateAllEvent;
 
-//    @Scheduled(every = "1m")
-    @Scheduled(cron = "{aggr.minute.cron.expr}",concurrentExecution = ConcurrentExecution.SKIP)
-    void _aggregateCoarseToMinute() {
+    @Override
+    public void aggregateCoarseToMinute() {
         LOGGER.info("aggregateCoarseToMinute() - start");
 
-        long minTime = 2L;
+        long minTime = -1;
         aggregateNH3TimerEvent.fire(minTime);
         aggregateOxidisingTimerEvent.fire(minTime);
         aggregatePM10TimerEvent.fire(minTime);
@@ -74,25 +67,26 @@ class SchedulerServiceImpl implements SchedulerService {
         LOGGER.info("aggregateCoarseToMinute() - end");
     }
 
-//    @Scheduled(every = "1h")
-    @Scheduled(cron = "{aggr.hour.cron.expr}",concurrentExecution = ConcurrentExecution.SKIP)
-    void aggregateMinuteToHourInt() {
+    @Override
+    public void aggregateMinuteToHour() {
         LOGGER.info("aggregateMinuteToHour() - start");
 
-        aggregateMinuteToHourTimerEvent.fire(1L);
+        aggregateMinuteToHourTimerEvent.fire(-1L);
 
         LOGGER.info("aggregateMinuteToHour() - end");
     }
 
-
-//    @Scheduled(every = "24h")
-    @Scheduled(cron = "{aggr.day.cron.expr}",concurrentExecution = ConcurrentExecution.SKIP)
-    void aggregateHourToDayInt() {
+    @Override
+    public void aggregateHourToDay() {
         LOGGER.info("aggregateHourToDay() - start");
 
-        aggregateHourToDayTimerEvent.fire(1L);
+        aggregateHourToDayTimerEvent.fire(-1L);
 
         LOGGER.info("aggregateHourToDay() - end");
     }
 
+    @Override
+    public void aggregateAll() {
+        aggregateAllEvent.fire(-1L);
+    }
 }
