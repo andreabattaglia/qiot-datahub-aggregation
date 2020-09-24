@@ -12,6 +12,7 @@ import com.redhat.qiot.datahub.aggregation.persistence.MeasurementByDayRepositor
 import com.redhat.qiot.datahub.aggregation.persistence.MeasurementByHourRepository;
 import com.redhat.qiot.datahub.aggregation.persistence.MeasurementByMinuteRepository;
 import com.redhat.qiot.datahub.aggregation.util.events.AggregateAll;
+import com.redhat.qiot.datahub.aggregation.util.events.AggregateDayToMonthTimer;
 import com.redhat.qiot.datahub.aggregation.util.events.AggregateHourToDayTimer;
 import com.redhat.qiot.datahub.aggregation.util.events.AggregateMinuteToHourTimer;
 import com.redhat.qiot.datahub.aggregation.util.events.AggregateNH3Timer;
@@ -117,6 +118,16 @@ public class AggregationServiceImpl implements AggregationService {
     void aggregateHourToDay(@Observes @AggregateHourToDayTimer Long days) {
         LOGGER.info("aggregateHourToDay - start", days);
         byHourRepository.aggregate(days);
+        byDayRepository.aggregate();
+        LOGGER.info("aggregateHourToDay - end", days);
+    }
+
+    /**
+     * @param coordinates
+     *            the coordinates to set
+     */
+    void aggregateDayToMonth(@Observes @AggregateDayToMonthTimer Long days) {
+        LOGGER.info("aggregateHourToDay - start", days);
         byDayRepository.aggregate();
         LOGGER.info("aggregateHourToDay - end", days);
     }

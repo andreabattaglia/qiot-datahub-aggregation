@@ -60,9 +60,6 @@ public class MeasurementByDayRepository {
     CodecProvider pojoCodecProvider = null;
     CodecRegistry pojoCodecRegistry = null;
 
-    void onStart(@Observes StartupEvent ev) {
-    }
-
     @PostConstruct
     void init() {
         qiotDatabase = mongoClient.getDatabase(DATABASE_NAME);
@@ -132,6 +129,11 @@ public class MeasurementByDayRepository {
                 , include("time", "min", "max", "avg", "count")//
                 , computed("stationId", "$_id.stationId")//
                 , computed("specie", "$_id.specie")//
+                ,
+                computed("month",
+                        new Document("$concat",
+                                Arrays.asList(new Document("$toString", new Document("$year", "$time")),
+                                        new Document("$toString", new Document("$month", "$time")))))
 
         ));
     }
@@ -143,7 +145,7 @@ public class MeasurementByDayRepository {
 
     private Bson merge() {
         MergeOptions mergeOptions = new MergeOptions()
-                .uniqueIdentifier(Arrays.asList("time", "stationId", "specie"))
+                .uniqueIdentifier(Arrays.asList("month", "stationId", "specie"))
                 .whenMatched(WhenMatched.REPLACE)
                 .whenNotMatched(WhenNotMatched.INSERT);
         return Aggregates.merge(MERGE_COLLECTION_NAME, mergeOptions);

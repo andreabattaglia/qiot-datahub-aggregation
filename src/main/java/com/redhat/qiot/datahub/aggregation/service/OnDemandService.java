@@ -8,6 +8,8 @@ public interface OnDemandService {
 
     void aggregateHourToDay();
 
+    void aggregateDayToMonth();
+
     void aggregateAll();
 
 }

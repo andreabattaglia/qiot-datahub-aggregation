@@ -43,10 +43,6 @@ public class MeasurementByMonthRepository {
     CodecRegistry pojoCodecRegistry = null;
 
     void onStart(@Observes StartupEvent ev) {
-    }
-
-    @PostConstruct
-    void init() {
         qiotDatabase = mongoClient.getDatabase(DATABASE_NAME);
         try {
             qiotDatabase.createCollection(COLLECTION_NAME);
@@ -69,11 +65,15 @@ public class MeasurementByMonthRepository {
         collection = collection.withCodecRegistry(pojoCodecRegistry);
     }
 
+    @PostConstruct
+    void init() {
+    }
+
     private void ensureIndexes() {
         collection.createIndex(Indexes.descending("time"));
         IndexOptions uniqueIndexOptions = new IndexOptions().unique(true);
         collection.createIndex(
-                Indexes.descending("time", "stationId", "specie"),
+                Indexes.descending("month", "stationId", "specie"),
                 uniqueIndexOptions);
     }
 

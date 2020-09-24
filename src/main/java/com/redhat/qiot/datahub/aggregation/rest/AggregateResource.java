@@ -37,6 +37,9 @@ public class AggregateResource {
         case day:
             onDemandService.aggregateHourToDay();
             break;
+        case month:
+            onDemandService.aggregateDayToMonth();
+            break;
         case all:
             onDemandService.aggregateAll();
         default:

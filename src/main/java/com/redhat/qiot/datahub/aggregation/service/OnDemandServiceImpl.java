@@ -10,6 +10,7 @@ import javax.inject.Inject;
 import org.slf4j.Logger;
 
 import com.redhat.qiot.datahub.aggregation.util.events.AggregateAll;
+import com.redhat.qiot.datahub.aggregation.util.events.AggregateDayToMonthTimer;
 import com.redhat.qiot.datahub.aggregation.util.events.AggregateHourToDayTimer;
 import com.redhat.qiot.datahub.aggregation.util.events.AggregateMinuteToHourTimer;
 import com.redhat.qiot.datahub.aggregation.util.events.AggregateNH3Timer;
@@ -49,6 +50,9 @@ public class OnDemandServiceImpl implements OnDemandService {
     @Inject
     @AggregateHourToDayTimer
     Event<Long> aggregateHourToDayTimerEvent;
+    @Inject
+    @AggregateDayToMonthTimer
+    Event<Long> aggregateDayToMonthTimerEvent;
 
     @Inject
     @AggregateAll
@@ -81,6 +85,15 @@ public class OnDemandServiceImpl implements OnDemandService {
         LOGGER.info("aggregateHourToDay() - start");
 
         aggregateHourToDayTimerEvent.fire(-1L);
+
+        LOGGER.info("aggregateHourToDay() - end");
+    }
+
+    @Override
+    public void aggregateDayToMonth() {
+        LOGGER.info("aggregateHourToDay() - start");
+
+        aggregateDayToMonthTimerEvent.fire(-1L);
 
         LOGGER.info("aggregateHourToDay() - end");
     }
