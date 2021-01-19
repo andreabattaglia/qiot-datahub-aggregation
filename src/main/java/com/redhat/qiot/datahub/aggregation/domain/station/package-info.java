@@ -1,1 +1,0 @@
-package com.redhat.qiot.datahub.aggregation.domain.station;

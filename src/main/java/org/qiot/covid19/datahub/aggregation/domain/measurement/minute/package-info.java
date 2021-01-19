@@ -1,0 +1,1 @@
+package org.qiot.covid19.datahub.aggregation.domain.measurement.minute;
