@@ -60,8 +60,7 @@ public class MeasurementByDayRepository {
     CodecProvider pojoCodecProvider = null;
     CodecRegistry pojoCodecRegistry = null;
 
-    @PostConstruct
-    void init() {
+    void onStart(@Observes StartupEvent ev) {
         qiotDatabase = mongoClient.getDatabase(DATABASE_NAME);
         try {
             qiotDatabase.createCollection(COLLECTION_NAME);
@@ -82,6 +81,10 @@ public class MeasurementByDayRepository {
                 MongoClientSettings.getDefaultCodecRegistry(),
                 CodecRegistries.fromProviders(pojoCodecProvider));
         collection = collection.withCodecRegistry(pojoCodecRegistry);
+    }
+    
+    @PostConstruct
+    void init() {
     }
 
     private void ensureIndexes() {

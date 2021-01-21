@@ -1,5 +1,6 @@
 package org.qiot.covid19.datahub.aggregation.service;
 
+import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
@@ -43,13 +44,20 @@ public class AggregationServiceImpl implements AggregationService {
     @Inject
     MeasurementByDayRepository byDayRepository;
 
-    void onStart(@Observes StartupEvent ev) {
+//    void onStart(@Observes StartupEvent ev) {
+//        LOGGER.info("Running aggregation pipelines once at startup...");
+//        runAggregationOnce(-1L);
+//    }
+
+    @PostConstruct
+    void init() {
         LOGGER.info("Running aggregation pipelines once at startup...");
         runAggregationOnce(-1L);
     }
-    
-     void runAggregationOnce(@Observes @AggregateAll Long value) {
-         LOGGER.info("Aggregating all the available data without time offsets...");
+
+    void runAggregationOnce(@Observes @AggregateAll Long value) {
+        LOGGER.info(
+                "Aggregating all the available data without time offsets...");
         coarseGasRepository.aggregateNH3(-1L);
         coarseGasRepository.aggregateOxidising(-1L);
         coarsePollutionRepository.aggregatePM10(-1L);
